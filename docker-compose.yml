@@ -1,0 +1,13 @@
+services:
+  bookhoard:
+    build: .
+    image: bookhoard:latest
+    container_name: bookhoard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env          # PUID/PGID in .env decide who owns the files
+    volumes:
+      - ./data:/data          # database, covers
+      - ./books:/books        # the library itself (Author/Title/file.epub)
+      - ./ingest:/ingest      # drop files here to import them

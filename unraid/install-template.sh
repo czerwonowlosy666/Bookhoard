@@ -1,0 +1,68 @@
+#!/bin/bash
+# Writes the Bookhoard template into Unraid and creates its folders. Paste into the Unraid terminal.
+mkdir -p /boot/config/plugins/dockerMan/templates-user /mnt/user/appdata/bookhoard /mnt/user/books /mnt/user/downloads/bookhoard-ingest
+chown nobody:users /mnt/user/appdata/bookhoard /mnt/user/books /mnt/user/downloads/bookhoard-ingest
+cat > /boot/config/plugins/dockerMan/templates-user/my-bookhoard.xml <<'BOOKHOARD_EOF'
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>bookhoard</Name>
+  <Repository>ghcr.io/czerwonowlosy666/bookhoard:latest</Repository>
+  <Registry>https://github.com/users/czerwonowlosy666/packages/container/package/bookhoard</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/czerwonowlosy666/Bookhoard/issues</Support>
+  <Project>https://github.com/czerwonowlosy666/Bookhoard</Project>
+  <Overview>Bookhoard – a self-hosted e-book library with a pleasant web UI (light/dark theme, bookshelves, tags). Publishes the library as an OPDS catalog for KOReader (Kobo, PocketBook, Kindle, Android), fetches Polish metadata and covers from lubimyczytac.pl, and can search Anna's Archive and download books straight into the library.[br][br]
+[b]After install:[/b] open the WebUI and sign in with APP_USER / APP_PASSWORD. In KOReader add the OPDS catalog http://[UNRAID-IP]:8080/opds/ with the same login.[br]
+Drop files into the Ingest folder (e.g. over SMB) to import them automatically.</Overview>
+  <Category>MediaApp:Books Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/czerwonowlosy666/Bookhoard/main/unraid/bookhoard.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/czerwonowlosy666/Bookhoard/main/unraid/bookhoard.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+
+  <!-- ports -->
+  <Config Name="WebUI / OPDS port" Target="8080" Default="8080" Mode="tcp" Description="Web interface and the KOReader OPDS catalog (/opds/)." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+
+  <!-- paths -->
+  <Config Name="Appdata" Target="/data" Default="/mnt/user/appdata/bookhoard" Mode="rw" Description="Database and cover cache." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/bookhoard</Config>
+  <Config Name="Library" Target="/books" Default="/mnt/user/books" Mode="rw" Description="Your book library. Books are stored as Author/Title/Title - Author.epub. Existing files here are imported on start." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/books</Config>
+  <Config Name="Ingest folder" Target="/ingest" Default="/mnt/user/downloads/bookhoard-ingest" Mode="rw" Description="Drop e-book files here to import them; they are moved into the Library. Must NOT be inside the Library folder." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/downloads/bookhoard-ingest</Config>
+
+  <!-- login -->
+  <Config Name="Username" Target="APP_USER" Default="admin" Mode="" Description="Login for the web UI and KOReader OPDS catalog." Type="Variable" Display="always" Required="true" Mask="false">admin</Config>
+  <Config Name="Password" Target="APP_PASSWORD" Default="" Mode="" Description="Login password. Leaving it empty disables authentication – only do that on a trusted network." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <!-- Anna's Archive -->
+  <Config Name="Anna's Archive secret key" Target="AA_API_KEY" Default="" Mode="" Description="Your membership secret key from the Anna's Archive account page (the /account page on the current Anna&apos;s Archive domain). Enables fast, reliable downloads; without it only LibGen mirrors are used." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Anna's Archive mirrors" Target="AA_BASE_URLS" Default="https://annas-archive.gl" Mode="" Description="Comma-separated mirror URLs, tried in order. Domains change often – check the current ones on the Anna&apos;s Archive Wikipedia page." Type="Variable" Display="always" Required="false" Mask="false">https://annas-archive.gl</Config>
+  <Config Name="Default search language" Target="AA_DEFAULT_LANG" Default="pl" Mode="" Description="Default language filter on the Discover page (pl, en, de, ... or empty for any)." Type="Variable" Display="advanced" Required="false" Mask="false">pl</Config>
+  <Config Name="Default search format" Target="AA_DEFAULT_EXT" Default="epub" Mode="" Description="Default format filter on the Discover page (epub, mobi, azw3, fb2, pdf or empty)." Type="Variable" Display="advanced" Required="false" Mask="false">epub</Config>
+  <Config Name="Search source" Target="SEARCH_SOURCE" Default="auto" Mode="" Description="Where Discover searches by default: auto (Anna&apos;s Archive, falling back to LibGen), libgen, or annas." Type="Variable" Display="always" Required="false" Mask="false">auto</Config>
+  <Config Name="LibGen mirrors" Target="LIBGEN_BASE_URLS" Default="https://libgen.li" Mode="" Description="LibGen mirrors for search and downloads (matched by MD5), comma-separated, tried in order." Type="Variable" Display="always" Required="false" Mask="false">https://libgen.li</Config>
+  <Config Name="Outbound proxy" Target="OUTBOUND_PROXY" Default="" Mode="" Description="Optional HTTP proxy for all scraping and downloads, e.g. a gluetun/VPN container: http://192.168.1.10:8888" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+
+  <!-- lubimyczytac -->
+  <Config Name="Auto-match on lubimyczytac.pl" Target="LC_AUTO_METADATA" Default="true" Mode="" Description="Fetch metadata and covers from lubimyczytac.pl for newly imported books (true/false)." Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+  <Config Name="Tags from lubimyczytac" Target="LC_TAG_SOURCE" Default="categories" Mode="" Description="categories = only genres (fantasy, science fiction, literatura piękna…); all = genres plus readers&apos; free-form tags." Type="Variable" Display="always" Required="false" Mask="false">categories</Config>
+  <Config Name="Auto-match threshold" Target="LC_MIN_SCORE" Default="0.72" Mode="" Description="How confident (0-1) an automatic match must be before it is applied." Type="Variable" Display="advanced" Required="false" Mask="false">0.72</Config>
+  <Config Name="lubimyczytac request delay" Target="LC_REQUEST_DELAY" Default="1.0" Mode="" Description="Seconds between requests to lubimyczytac.pl." Type="Variable" Display="advanced" Required="false" Mask="false">1.0</Config>
+  <Config Name="Write metadata into EPUBs" Target="WRITE_EPUB_METADATA" Default="false" Mode="" Description="Also change the EPUB/KEPUB files themselves when metadata is edited or matched (true/false). Off by default: Bookhoard keeps metadata in its own database and your files stay untouched." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+
+  <!-- general -->
+  <Config Name="App name" Target="APP_NAME" Default="Bookhoard" Mode="" Description="Name shown in the UI and in KOReader." Type="Variable" Display="advanced" Required="false" Mask="false">Bookhoard</Config>
+  <Config Name="Ingest scan interval" Target="SCAN_INTERVAL" Default="30" Mode="" Description="Seconds between scans of the Ingest folder." Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User ID that owns the files (Unraid: 99 = nobody)." Type="Variable" Display="advanced" Required="true" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group ID that owns the files (Unraid: 100 = users)." Type="Variable" Display="advanced" Required="true" Mask="false">100</Config>
+  <Config Name="UMASK" Target="UMASK" Default="002" Mode="" Description="File permission mask for new files." Type="Variable" Display="advanced" Required="false" Mask="false">002</Config>
+  <Config Name="Log level" Target="LOG_LEVEL" Default="INFO" Mode="" Description="DEBUG, INFO, WARNING or ERROR." Type="Variable" Display="advanced" Required="false" Mask="false">INFO</Config>
+</Container>
+BOOKHOARD_EOF
+echo "Template installed: Docker -> Add Container -> Template -> bookhoard"

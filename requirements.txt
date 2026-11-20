@@ -1,0 +1,6 @@
+flask==3.1.*
+gunicorn==23.*
+requests==2.32.*
+beautifulsoup4==4.13.*
+lxml==5.*
+pillow==11.*

@@ -1,0 +1,6 @@
+data
+books
+ingest
+tests
+.env
+**/__pycache__
